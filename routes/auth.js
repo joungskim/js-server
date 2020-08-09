@@ -26,11 +26,11 @@ router.post('/register', async(req, res) => {
 
     //Create new User
     const user = new User({
-        userName: req.body.userName,
+        userName: _.toLower(req.body.userName),
         nameFirst: req.body.nameFirst,
         nameMiddle: req.body.nameMiddle,
         nameLast: req.body.nameLast,
-        email: req.body.email,
+        email: _.toLower(req.body.email),
         password: hashPassword,
         currentTenant: req.body.currentTenant,
         owner: req.body.owner
@@ -51,8 +51,8 @@ router.post('/login', async(req, res) => {
     //Find user by email or userName
     const user = await User.findOne({
         $or: [
-            { email: req.body.login },
-            { userName: req.body.login }
+            { email: _.toLower(req.body.login) },
+            { userName: _.toLower(req.body.login) }
         ]
     })
 
