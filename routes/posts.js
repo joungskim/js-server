@@ -61,19 +61,17 @@ router.get('/searchByName', verify, async(req, res) => {
 })
 
 /* Patch user profiles */
-
 router.patch('/updateUser', verify, async(req, res) => {
     const isOwner = (await User.findOne({ _id: req.user }, { owner: 1 })).owner;
     const isTenant = (await User.findOne({ _id: req.user }, { currentTenant: 1 })).currentTenant;
 
-    console.log("Logging Tenant: " + isTenant)
-    console.log("Logging req.body.currentTenant: " + req.body.currentTenant)
-
-    //TODO: Ask joe how to handle this in a better way.
-    if (isTenant && req.body.owner || !isOwner && !isTenant && req.body.owner) req.body.owner = false;
-    if (isTenant && req.body.userName || !isOwner && !isTenant && req.body.userName)
-        req.body.userName = (await User.findOne({ _id: req.user }, { userName: 1 })).userName;
-    if (isTenant && !req.body.currentTenant || !isOwner && !isTenant && !req.body.currentTenant) req.body.currentTenant = true;
+    //Ask joe how to improve this.
+    if (isTenant || !isOwner && !isTenant) {
+        delete req.body.owner;
+        delete req.body.userName;
+        delete req.body.currentTenant;
+        delete req.body.date;
+    }
 
     await User.updateOne({ _id: req.user._id }, { $set: req.body })
     res.status(200).send("User was successfully updated.")
