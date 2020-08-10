@@ -1,10 +1,13 @@
 //NPM Packages
 const router = require('express').Router();
 const _ = require('lodash');
+const bcrypt = require('bcryptjs');
 
 //Local Files
 const verify = require('./verifyToken');
 const User = require('../model/User');
+const { object } = require('@hapi/joi');
+const { isEmpty } = require('lodash');
 
 /* Get Types of Users */
 
@@ -61,20 +64,49 @@ router.get('/searchByName', verify, async(req, res) => {
 })
 
 /* Patch user profiles */
-router.patch('/updateUser', verify, async(req, res) => {
-    const isOwner = (await User.findOne({ _id: req.user }, { owner: 1 })).owner;
-    const isTenant = (await User.findOne({ _id: req.user }, { currentTenant: 1 })).currentTenant;
+router.patch('/user/update/', verify, async(req, res) => {
 
-    //Ask joe how to improve this.
-    if (isTenant || !isOwner && !isTenant) {
-        delete req.body.owner;
-        delete req.body.userName;
-        delete req.body.currentTenant;
-        delete req.body.date;
+    //Hash Password
+    let hashPassword;
+
+    if (req.body.password) {
+        const salt = await bcrypt.genSalt(10);
+        hashPassword = await bcrypt.hash(req.body.password, salt);
     }
 
-    await User.updateOne({ _id: req.user._id }, { $set: req.body })
-    res.status(200).send("User was successfully updated.")
+    const isOwner = (await User.findOne({ _id: req.user }, { owner: 1 })).owner;
+
+    const user = {
+        userName: _.toLower(req.body.userName),
+        nameFirst: req.body.nameFirst,
+        nameMiddle: req.body.nameMiddle,
+        nameLast: req.body.nameLast,
+        email: _.toLower(req.body.email),
+        password: hashPassword,
+        currentTenant: req.body.currentTenant,
+        owner: req.body.owner
+    };
+
+    if (!isOwner) {
+        delete user.owner;
+        delete user.userName;
+        delete user.currentTenant;
+        delete user.date;
+    }
+
+    for (const key in user) {
+        if (user.hasOwnProperty(key)) {
+            if (user[key] === null || isEmpty(user[key] || user[key] === 'undefined')) {
+                delete user[key];
+            }
+        }
+    }
+    try {
+        await User.updateOne({ _id: req.user._id }, { $set: req.body })
+            .then(res.status(200).send("User was successfully updated."))
+    } catch (error) {
+        res.status(400).send(error);
+    }
 })
 
 module.exports = router;
