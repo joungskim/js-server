@@ -66,12 +66,9 @@ router.get('/searchByName', verify, async(req, res) => {
 /* Patch user profiles */
 router.patch('/user/update/', verify, async(req, res) => {
 
-    //Hash Password
-    let hashPassword;
-
     if (req.body.password) {
         const salt = await bcrypt.genSalt(10);
-        hashPassword = await bcrypt.hash(req.body.password, salt);
+        req.body.password = await bcrypt.hash(req.body.password, salt);
     }
 
     const isOwner = (await User.findOne({ _id: req.user }, { owner: 1 })).owner;
@@ -82,7 +79,7 @@ router.patch('/user/update/', verify, async(req, res) => {
         nameMiddle: req.body.nameMiddle,
         nameLast: req.body.nameLast,
         email: _.toLower(req.body.email),
-        password: hashPassword,
+        password: req.body.password,
         currentTenant: req.body.currentTenant,
         owner: req.body.owner
     };
