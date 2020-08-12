@@ -101,6 +101,11 @@ router.patch('/user/update/', verify, async(req, res) => {
             return res.status(UNAUTHORIZED).send('You cant do that');
         }
 
+        if (user.email) {
+            const emailExist = await User.findOne({ email: user.email }).email
+            if (emailExist) return res.status(UNAUTHORIZED).send('Email already in use.');
+        }
+
         if (user.password) {
             user.password = await bcrypt.hash(user.password, salt);
         }
